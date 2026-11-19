@@ -1,2 +1,68 @@
-# Hubble
-Interactive web app prototypes and MVPs for Project Hubble — exploring travel tech, digital nomad communities, and smart tourism experiences.
+# 搖一搖・清邁試住夥伴（MVP Web App）
+
+對應文件：《清邁數位遊牧「搖一搖」小程式 需求規格書 v0.3》與《Web App 設計規格書 v0.2》。
+介面為繁體中文，響應式（手機、平板、桌機）。
+
+## 這個版本是什麼
+
+可以完整操作的 **前端示範版**，沒有後端：
+
+- 資料存在瀏覽器的 localStorage，只有你自己看得到，換瀏覽器或清除資料就會重來。
+- 其他使用者、導遊都是**虛構的示範資料**，他們的反應（回打招呼、回訊息、接受或婉拒導遊邀請）由程式模擬。
+- 通知是畫面上的提示，不是手機推播。
+- 沒有真的登入驗證；電子郵件登入不會寄信。
+- 「營運後台」和「導遊端」是示範頁，沒有權限控管。
+
+## 本機執行
+
+```bash
+npm install
+npm run dev      # 開發
+npm test         # 29 個測試
+npm run build    # 產生 dist/
+```
+
+## 部署到 Vercel
+
+1. 把這個資料夾推到 GitHub（或用 Vercel CLI：`npx vercel`）。
+2. 在 Vercel 匯入專案，Framework 會自動偵測為 Vite（Build Command `npm run build`，Output Directory `dist`）。
+3. `vercel.json` 已設定所有路徑導回 `index.html`，直接開 `/activities` 之類的網址不會 404。
+4. 選填：環境變數 `VITE_DEMO_SPEEDUP`（預設 60）。示範時 30 分鐘的導遊邀請逾時只要 30 秒；設成 1 就是真實的 30 分鐘。
+
+## 怎麼示範
+
+- 第一次進來：用任何信箱格式登入，建檔三步，勾選 18 歲，進入搖一搖。
+- 搖一搖：桌機按圓形按鈕；手機可以真的搖（iOS 要先按「開啟搖一搖」授權）。
+- 距離篩選：預設位置在清邁尼曼區。到「我的」打開「使用真實定位」後，選距離篩選才會請求定位授權。
+- 「聊天」頂端有 2 個「收到的招呼」，回打招呼會立刻配對成功。
+- 導遊配對：到「活動」建立活動，幾秒後會有模擬成員加入，按「確認成團」→「需要導遊講解嗎？」選需要。
+  - 活動時間選在**週六或週日**，會有很多導遊可以邀請。
+  - 選在**週二**，沒有導遊可接，會直接看到「無人可接」。
+  - 想扮演導遊：開「我的」→「導遊端（示範）」，選一位導遊，手動接受或婉拒。
+- 「我的」→「重置示範資料」可以回到初始狀態（個人檔案保留）。
+
+## 程式結構
+
+```
+src/lib/reducer.js    所有狀態變化（配對、揪團、導遊邀請）。純函式，有測試
+src/lib/store.jsx     狀態儲存（localStorage）、每秒一次的 TICK、模擬對方的反應
+src/lib/seed.js       示範資料（使用者、導遊、官方行程、活動）
+src/lib/guides.js     導遊候選與模擬回應
+src/lib/config.js     常數：30 分鐘逾時、一次 3 位、距離選項、文案選項
+src/pages/            各畫面（對應設計規格書 S01 至 S19）
+src/styles.css        樣式（手機優先，640 與 1024 px 兩個斷點）
+```
+
+## 接上真正的後端時要換的地方
+
+`src/lib/store.jsx` 的 `makeActions` 是畫面唯一會呼叫的介面。要接後端，就把這些函式改成呼叫 API，並把模擬的部分拿掉：
+
+- 模擬對方回打招呼、回訊息、模擬成員加入（`reducer.js` 的 `GREET_BACK`、`SIM_REPLY`、`SIM_JOIN`）
+- 導遊回應計畫（`guides.js` 的 `makePlan`）改成真的推送邀請給導遊
+- 聊天需要即時連線（WebSocket 或 Server-Sent Events）
+- 登入、封鎖、檢舉、後台權限都需要伺服器驗證
+- 官方行程報名連結：`config.js` 的 `OFFICIAL_SIGNUP_URL` 目前是雄獅官網首頁，請換成實際的報名頁
+
+## 還沒做的（需求規格書第 13 節的後續項目）
+
+英文與泰文介面、訊息翻譯、推薦加權、活動候補與回饋、行前提醒、數據儀表板、導遊評價。
